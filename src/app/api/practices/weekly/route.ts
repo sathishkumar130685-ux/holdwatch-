@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronAuthorized, hasPracticeAccess } from "@/lib/practices/access";
-import { weekRangeFor } from "@/lib/practices/dates";
+import { mailedWeek, weekRangeFor } from "@/lib/practices/dates";
 import { mailStatus, sendMail } from "@/lib/practices/mail";
 import { getMailLog, listEntries, markMailSent } from "@/lib/practices/store";
 import { buildWeekSummary } from "@/lib/practices/summary";
@@ -13,7 +13,7 @@ function scopeFrom(value: unknown): WeekScope {
   return value === "current" ? "current" : "previous";
 }
 
-async function deliver(scope: WeekScope, force: boolean) {
+async function deliver(scope: WeekScope, force: boolean, fromCron = false) {
   const status = mailStatus();
   if (!status.ready) {
     return NextResponse.json(
@@ -25,7 +25,7 @@ async function deliver(scope: WeekScope, force: boolean) {
     );
   }
 
-  const range = weekRangeFor(scope);
+  const range = fromCron ? mailedWeek() : weekRangeFor(scope);
   const lastMail = await getMailLog();
   if (!force && lastMail?.weekStart === range.start && lastMail.scope === scope) {
     return NextResponse.json({
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
   try {
-    return await deliver("previous", false);
+    return await deliver("previous", false, true);
   } catch (error) {
     const message = error instanceof Error ? error.message : "The email could not be sent.";
     return NextResponse.json({ error: message }, { status: 502 });

@@ -17,13 +17,49 @@ const MONTHS = [
   "Dec",
 ] as const;
 
-export function todayISO(now = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
+const WEEK_ROLL_MINUTES = 5 * 60 + 30;
+
+type ZonedClock = {
+  iso: string;
+  weekday: string;
+  minutes: number;
+};
+
+function zonedClock(now: Date): ZonedClock {
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: PRACTICE_TIMEZONE,
+    weekday: "short",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now);
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  let hour = Number(value("hour"));
+  if (hour === 24) hour = 0;
+  return {
+    iso: `${value("year")}-${value("month")}-${value("day")}`,
+    weekday: value("weekday"),
+    minutes: hour * 60 + Number(value("minute")),
+  };
+}
+
+export function todayISO(now = new Date()): string {
+  return zonedClock(now).iso;
+}
+
+/**
+ * A week is Sunday–Saturday in India. It rolls to the next week on Sunday at 5:30 AM,
+ * which is when the summary email goes out.
+ */
+export function weekAnchorISO(now = new Date()): string {
+  const clock = zonedClock(now);
+  const beforeSundayMail =
+    clock.weekday === "Sun" && clock.minutes < WEEK_ROLL_MINUTES;
+  return beforeSundayMail ? addDays(clock.iso, -1) : clock.iso;
 }
 
 export function isISODate(value: string): boolean {
@@ -51,11 +87,20 @@ export function addDays(iso: string, days: number): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Monday of the calendar week that contains `iso` (treated as a calendar date). */
-export function weekStartMonday(iso: string): string {
+/** Sunday of the calendar week that contains `iso`. */
+export function weekStartSunday(iso: string): string {
   const day = utcDate(iso).getUTCDay();
-  const delta = day === 0 ? -6 : 1 - day;
-  return addDays(iso, delta);
+  return addDays(iso, -day);
+}
+
+/** Sunday–Saturday week the Sunday morning email should contain. */
+export function mailedWeek(now = new Date()): { start: string; end: string } {
+  const clock = zonedClock(now);
+  if (clock.weekday === "Sun") {
+    const end = addDays(clock.iso, -1);
+    return { start: weekStartSunday(end), end };
+  }
+  return weekRangeFor("previous", now);
 }
 
 export function weekDates(weekStart: string): string[] {
@@ -66,7 +111,7 @@ export function weekRangeFor(scope: WeekScope, now = new Date()): {
   start: string;
   end: string;
 } {
-  const currentStart = weekStartMonday(todayISO(now));
+  const currentStart = weekStartSunday(weekAnchorISO(now));
   const start = scope === "previous" ? addDays(currentStart, -7) : currentStart;
   return { start, end: addDays(start, 6) };
 }

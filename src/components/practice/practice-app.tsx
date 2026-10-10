@@ -19,7 +19,7 @@ import {
   formatWeekRange,
   todayISO,
   weekDates,
-  weekStartMonday,
+  weekStartSunday,
   weekdayShort,
 } from "@/lib/practices/dates";
 import { buildWeekSummary } from "@/lib/practices/summary";
@@ -125,7 +125,7 @@ export function PracticeApp({
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
   const [weekStart, setWeekStart] = useState(
-    () => initialWeek?.weekStart ?? weekStartMonday(todayISO()),
+    () => initialWeek?.weekStart ?? weekStartSunday(todayISO()),
   );
   const [payload, setPayload] = useState<WeekView | null>(initialWeek);
   const [loading, setLoading] = useState(false);
@@ -136,10 +136,10 @@ export function PracticeApp({
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
 
-  const loadWeek = useCallback(async (anchor: string) => {
+  const loadWeek = useCallback(async (anchor?: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/practices?week=${anchor}`);
+      const response = await fetch(anchor ? `/api/practices?week=${anchor}` : "/api/practices");
       const data = (await response.json()) as WeekView & { error?: string };
       if (!response.ok) {
         if (response.status === 401) setUnlocked(false);
@@ -284,7 +284,7 @@ export function PracticeApp({
       return;
     }
     setUnlocked(true);
-    await loadWeek(todayISO());
+    await loadWeek();
   }
 
   if (!unlocked && accessRequired) {
@@ -325,7 +325,7 @@ export function PracticeApp({
 
   const previousStart = addDays(payload?.weekStart ?? weekStart, -7);
   const nextStart = addDays(payload?.weekStart ?? weekStart, 7);
-  const thisWeekStart = payload ? weekStartMonday(payload.today) : weekStart;
+  const thisWeekStart = payload?.currentWeekStart ?? weekStart;
   const atThisWeek = payload?.weekStart === thisWeekStart;
 
   return (
@@ -339,8 +339,9 @@ export function PracticeApp({
             Daily record
           </h1>
           <p className="mt-3 max-w-xl text-[#3d4a45]">
-            The same log as the group form. A summary email goes out every Monday
-            morning for the week that just ended.
+            The same log as the group form. A week is Sunday to Saturday. The
+            summary email goes out Sunday at 5:30 in the morning, and the next
+            week starts then.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -402,7 +403,7 @@ export function PracticeApp({
             <button
               type="button"
               disabled={atThisWeek}
-              onClick={() => void loadWeek(payload?.today ?? todayISO())}
+              onClick={() => void loadWeek()}
               className="rounded-full border border-[#e0d4c3] bg-white px-3 py-1.5 text-sm disabled:opacity-40"
             >
               This week

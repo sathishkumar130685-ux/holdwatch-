@@ -32,6 +32,7 @@ export type WeekView = {
   weekStart: string;
   weekEnd: string;
   today: string;
+  currentWeekStart: string;
   mail: { ready: boolean; to: string[]; via: "resend" | "smtp" | null };
   lastMail: { weekStart: string; sentAt: string; scope: string } | null;
   ephemeralDisk: boolean;

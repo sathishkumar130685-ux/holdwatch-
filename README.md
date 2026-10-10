@@ -115,7 +115,7 @@ Set the same core variables on any host (`KITE_API_KEY`, `KITE_API_SECRET`, `SES
 
 Open **[/practice](/practice)** (or the **Practice log** link on the holdings page). It records the same daily fields as the group Google Form: date, name, meditation, IRFR, service hours for that date, sex energy transmutation, self healing, higher levels, understanding and concretizing meditation, book reading, and other practices. One record per person per date.
 
-Every **Monday at 8:00 IST** a cron job emails the **previous** week (Monday–Sunday). From the page you can also send last week or the current week immediately. The mail lists each person’s days and names anyone with no record.
+A week runs **Sunday through Saturday**. Every **Sunday at 5:30 AM IST** the summary for that week is emailed, and the next week starts. From the page you can also send last week or the current week immediately. The mail lists each person’s days and names anyone with no record.
 
 Add these to `.env.local` (see `.env.example`):
 
@@ -126,7 +126,7 @@ Add these to `.env.local` (see `.env.example`):
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Gmail or another SMTP server |
 | `RESEND_API_KEY` | Use this instead of SMTP if you prefer Resend |
 | `PRACTICE_ACCESS_CODE` | Optional shared code before the log opens |
-| `CRON_SECRET` | Required for the Monday cron. On Vercel, set the same value and Vercel sends it as `Authorization: Bearer …` |
+| `CRON_SECRET` | Required for the Sunday 5:30 AM cron. On Vercel, set the same value and Vercel sends it as `Authorization: Bearer …` |
 
 Records are stored in `.data/practices.json` on the server disk. A host with an ephemeral disk (including Vercel) will not keep them across restarts — use a server with a persistent disk, or rely on the emailed copy.
 
