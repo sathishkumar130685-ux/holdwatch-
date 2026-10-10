@@ -111,25 +111,6 @@ After adding a domain in Vercel, set `APP_URL` to `https://your-domain.com` and 
 
 Set the same core variables on any host (`KITE_API_KEY`, `KITE_API_SECRET`, `SESSION_SECRET`). Use `APP_URL` when the host does not set `VERCEL_URL`.
 
-## Arhatic Yoga practice log
-
-Open **[/practice](/practice)** (or the **Practice log** link on the holdings page). It records the same daily fields as the group Google Form: date, name, meditation, IRFR, service hours for that date, sex energy transmutation, self healing, higher levels, understanding and concretizing meditation, book reading, and other practices. One record per person per date.
-
-A week runs **Sunday through Saturday**. Every **Sunday at 5:30 AM IST** the summary for that week is emailed, and the next week starts. From the page you can also send last week or the current week immediately. The mail lists each person’s days and names anyone with no record.
-
-Add these to `.env.local` (see `.env.example`):
-
-| Variable | Purpose |
-|----------|---------|
-| `PRACTICE_MAIL_TO` | Who receives the weekly summary (comma-separated) |
-| `PRACTICE_MAIL_FROM` | From address |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Gmail or another SMTP server |
-| `RESEND_API_KEY` | Use this instead of SMTP if you prefer Resend |
-| `PRACTICE_ACCESS_CODE` | Optional shared code before the log opens |
-| `CRON_SECRET` | Required for the Sunday 5:30 AM cron. On Vercel, set the same value and Vercel sends it as `Authorization: Bearer …` |
-
-Records are stored in `.data/practices.json` on the server disk. A host with an ephemeral disk (including Vercel) will not keep them across restarts — use a server with a persistent disk, or rely on the emailed copy.
-
 ## Limitations & next steps
 
 - Alerts are **in-app toasts** while the dashboard is open. For push/SMS/email, add a cron job or background worker that calls `/api/watch` and sends via your provider.

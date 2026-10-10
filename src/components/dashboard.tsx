@@ -330,9 +330,6 @@ export function Dashboard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href="/practice" className={cn(buttonVariants({ variant: "outline" }))}>
-            Practice log
-          </a>
           {!connected ? (
             <a
               href="/api/auth/login"
