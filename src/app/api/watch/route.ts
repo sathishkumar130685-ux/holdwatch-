@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { listAlertRules } from "@/lib/alerts-store";
-import { evaluateAlerts } from "@/lib/alert-engine";
+import { evaluateAlerts, previousClose } from "@/lib/alert-engine";
 import {
   fetchHoldings,
   fetchLtp,
   instrumentKey,
   isKiteConfigured,
+  KitePermissionError,
 } from "@/lib/kite";
 import { getSession } from "@/lib/session";
 
@@ -25,7 +26,14 @@ export async function GET() {
     const instruments = holdings.map((h) =>
       instrumentKey(h.exchange, h.tradingsymbol),
     );
-    const ltpRaw = await fetchLtp(session.accessToken, instruments);
+    // Personal (free) Kite apps can read holdings, which already include
+    // last_price, but /quote/ltp returns 403 Insufficient permission.
+    let ltpRaw: Record<string, { last_price: number }> = {};
+    try {
+      ltpRaw = await fetchLtp(session.accessToken, instruments);
+    } catch (error) {
+      if (!(error instanceof KitePermissionError)) throw error;
+    }
     const ltpByInstrument: Record<string, number> = {};
     for (const [key, value] of Object.entries(ltpRaw)) {
       ltpByInstrument[key] = value.last_price;
@@ -36,11 +44,22 @@ export async function GET() {
     const enriched = holdings.map((h) => {
       const key = instrumentKey(h.exchange, h.tradingsymbol);
       const lastPrice = ltpByInstrument[key] ?? h.last_price;
+      const prevClose = previousClose(h);
       const dropFromAvg =
         h.average_price > 0
           ? ((h.average_price - lastPrice) / h.average_price) * 100
           : 0;
-      return { ...h, last_price: lastPrice, drop_from_avg_percent: dropFromAvg };
+      const dropFromPrevClose =
+        prevClose && prevClose > 0
+          ? ((prevClose - lastPrice) / prevClose) * 100
+          : null;
+      return {
+        ...h,
+        last_price: lastPrice,
+        close_price: prevClose ?? h.close_price,
+        drop_from_avg_percent: dropFromAvg,
+        drop_from_prev_close_percent: dropFromPrevClose,
+      };
     });
 
     return NextResponse.json({
