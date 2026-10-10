@@ -1,4 +1,10 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "crons": [
+    {
+      "path": "/api/practices/weekly",
+      "schedule": "30 2 * * 1"
+    }
+  ]
 }
